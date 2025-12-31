@@ -1,0 +1,248 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OutboxStatus {
+  NEW
+  PENDING
+  FAILED
+  PROCESSED
+  CANCELLED
+}
+
+model OutboxEvent {
+  id            String       @map("id") @id @default(uuid()) 
+  aggregateType String       @map("aggregate_type")
+  aggregateId   String       @map("aggregate_id")
+  status        OutboxStatus @map("status") @default(NEW)
+  payload       Json         @map("payload")
+  retryCount    Int          @map("retry_count") @default(0)
+  createdAt     DateTime     @map("created_at") @default(now())
+
+  @@map("outbox_event")
+}
+
+model User {
+  id          String    @map("id") @id @default(uuid())
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  username    String    @map("username")
+  email       String    @map("email")
+  password    String    @map("password")
+  phoneNumber String    @map("phone_number")
+  birthOfDate DateTime  @map("birth_of_date")
+
+  // Audit fields
+  createdAt   DateTime  @map("created_at") @default(now())
+  createdBy   String    @map("created_by") @default("system")
+  updatedAt   DateTime  @map("updated_at") @updatedAt
+  updatedBy   String    @map("updated_by")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   String?   @map("deleted_by")
+
+  
+  @@index([username])
+  @@map("user")
+  addresses Address[]
+  orderDetails OrderDetails[]
+  carts Cart[]
+}
+
+model Address {
+  id          String    @map("id") @id @default(uuid())
+  userId      String    @map("user_id")
+  address     String    @map("address")
+  city        String    @map("city")
+  state       String    @map("state")
+  zipCode     String    @map("zip_code")
+  country     String    @map("country") @default("Vietnam")
+  timeZone    String    @map("time_zone") @default("UTC+7")
+
+  @@map("address")
+  @@index([userId])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OrderDetails {
+  id        String         @map("id") @id @default(uuid())
+  userId    String         @map("user_id")
+  total     Decimal        @map("total")
+  
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  paymentDetails PaymentDetails?
+
+  @@index([userId])
+  @@map("order_details")
+}
+
+model OrderItem {
+  id        String         @map("id") @id @default(uuid())
+  orderId   String         @map("order_id")
+  productId String         @map("product_id")
+  quantity  Int            @map("quantity")
+  price     Decimal        @map("price")
+  total     Decimal        @map("total")
+
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  order       OrderDetails @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_item")
+}
+
+model Product {
+  id          String   @map("id") @id @default(uuid())
+  name        String   @map("name")
+  description String   @map("description")
+  summary     String   @map("summary")
+  imageUrl    String   @map("image_url")
+  price       Decimal  @map("price")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  categoryId String? @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  productAttributes ProductAttribute[]
+  productSkuses ProductSkus[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@map("product")
+}
+
+model Cart {
+  id          String         @map("id") @id @default(uuid())
+  userId      String         @map("user_id")
+  total       Decimal        @map("total")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  @@index([userId])
+  @@map("cart")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id        String         @map("id") @id @default(uuid())
+  cartId    String         @map("cart_id")
+  productId String         @map("product_id")
+  quantity  Int            @map("quantity")
+  price     Decimal        @map("price")
+  total     Decimal        @map("total")
+
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  cart      Cart      @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_item")
+}
+
+enum ProductAttributeType {
+  COLOR
+  SIZE
+}
+
+model ProductAttribute {
+  id        String         @map("id") @id @default(uuid())
+  productId String         @map("product_id")
+  type      ProductAttributeType         @map("type")
+  value     String         @map("value")
+
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorSkus     ProductSkus[] @relation("ColorAttribute")
+  sizeSkus      ProductSkus[] @relation("SizeAttribute")
+
+  @@index([productId])
+  @@index([type])
+  @@map("product_attribute")
+}
+
+model ProductSkus {
+  id        String         @map("id") @id @default(uuid())
+  productId String         @map("product_id")
+  sku       String         @map("sku")
+  sizeAttributeId String         @map("size_attribute_id")
+  colorAttributeId String         @map("color_attribute_id")
+  price     Decimal        @map("price")
+  quantity  Int            @map("quantity")
+
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  colorAttribute ProductAttribute  @relation("ColorAttribute", fields: [colorAttributeId], references: [id], onDelete: Cascade)
+  sizeAttribute  ProductAttribute  @relation("SizeAttribute", fields: [sizeAttributeId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([sku])
+  @@index([colorAttributeId])
+  @@index([sizeAttributeId])
+  @@unique([sku])
+  @@map("product_skus")
+}
+
+model PaymentDetails {
+  id        String         @map("id") @id @default(uuid())
+  orderId   String         @map("order_id")
+  amount      Decimal        @map("amount")
+  status      String        @map("status")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at")
+
+  order       OrderDetails @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId])
+  @@index([orderId])
+  @@map("payment_details")
+}
+
+model Category {
+  id              String    @map("id") @id @default(uuid())
+  parentCategoryId String?  @map("parent_category_id")
+  name            String    @map("name")
+  description     String?   @map("description")
+  createdAt       DateTime  @map("created_at") @default(now())
+  updatedAt       DateTime  @map("updated_at") @updatedAt
+
+  parentCategory Category?  @relation("CategoryHierarchy", fields: [parentCategoryId], references: [id], onDelete: SetNull)
+  products       Product[]
+
+  @@index([name])
+  @@index([parentCategoryId])
+  @@map("category")
+  categories Category[] @relation("CategoryHierarchy")
+}
