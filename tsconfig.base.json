@@ -17,7 +17,9 @@
     "paths": {
       "@libs/kafka/*": ["libs/kafka/src/*"],
       "@libs/prisma/*": ["libs/prisma/src/*"],
-      "@libs/proto/*": ["libs/proto/src/*"]
+      "@libs/proto/*": ["libs/proto/src/*"],
+      "@libs/cache/*": ["libs/cache/src/*"],
+      "@libs/interceptors/*": ["libs/interceptors/src/*"]
     }
   },
   "exclude": ["node_modules", "tmp"]
