@@ -2,11 +2,12 @@ import {
   CallHandler,
   ConflictException,
   ExecutionContext,
+  HttpStatus,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable, of } from 'rxjs';
-import { finalize, tap } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, finalize, tap } from 'rxjs/operators';
 import { ICacheService } from '@libs/cache/cache.interface';
 
 enum EIdempotencyStatus {
@@ -23,6 +24,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
     next: CallHandler,
   ): Promise<Observable<unknown>> {
     const req = context.switchToHttp().getRequest();
+    const res = context.switchToHttp().getResponse();
     const key = req.headers['idempotency-key'];
 
     if (!key) {
@@ -37,14 +39,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (cached) {
       try {
         const parsed = JSON.parse(cached);
-        // If status is PROCESSING, return 409 Conflict
+        // If status is PROCESSING, return 409 Conflict with Retry-After header
         if (parsed.status === EIdempotencyStatus.PROCESSING) {
+          res.setHeader('Retry-After', '1');
           throw new ConflictException(
             'Request with this idempotency-key is already being processed',
           );
         }
-        // If status is COMPLETED, return cached data
+        // If status is COMPLETED, return cached data with 201 Created status
         if (parsed.status === EIdempotencyStatus.COMPLETED) {
+          res.status(HttpStatus.CREATED);
           return of(parsed.data);
         }
         return of(parsed);
@@ -71,6 +75,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         try {
           const parsed = JSON.parse(processingCheck);
           if (parsed.status === EIdempotencyStatus.PROCESSING) {
+            res.setHeader('Retry-After', '1');
             throw new ConflictException(
               'Request with this idempotency-key is already being processed',
             );
@@ -82,6 +87,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }
       }
       // Lock exists but no PROCESSING status - another request just started
+      res.setHeader('Retry-After', '1');
       throw new ConflictException(
         'Request with this idempotency-key is already being processed',
       );
@@ -109,6 +115,15 @@ export class IdempotencyInterceptor implements NestInterceptor {
         } catch (e) {
           console.error('Failed to cache idempotency response', e);
         }
+      }),
+      catchError(async (error) => {
+        // On error, cleanup PROCESSING status to allow retry
+        try {
+          await this.cacheService.del(cacheKey);
+        } catch (e) {
+          console.error('Failed to cleanup idempotency cache on error', e);
+        }
+        return throwError(() => error);
       }),
       finalize(async () => {
         // Release lock after processing completes (success or error)
