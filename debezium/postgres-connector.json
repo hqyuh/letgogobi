@@ -1,0 +1,26 @@
+{
+  "name": "order-svc-postgres-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "topic.prefix": "order-svc.created",
+    "database.hostname": "database",
+    "database.port": "5432",
+    "database.user": "postgresql",
+    "database.password": "postgresql",
+    "database.dbname": "kafka_hqh",
+    "database.server.name": "kafka_hqh",
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+    "table.include.list": "public.outbox_event",
+    "snapshot.mode": "never",
+    "slot.name": "debezium_order_svc",
+    "slot.drop.on.stop": "true",
+    "database.server.id": "184054",
+    "include.schema.changes": "false",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schema-history.kafka_hqh",
+    "heartbeat.interval.ms": "10000",
+    "max.batch.size": "2048",
+    "max.queue.size": "8192"
+  }
+}

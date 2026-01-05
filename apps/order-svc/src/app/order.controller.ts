@@ -7,8 +7,9 @@ export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
-  @UseInterceptors(IdempotencyInterceptor)
+    @UseInterceptors(IdempotencyInterceptor)
   async createOrder(@Headers('idempotency-key') idempotencyKey: string) {
     return this.orderService.createOrder(idempotencyKey);
   }
+
 }

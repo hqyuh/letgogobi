@@ -1,35 +1,29 @@
 import { Module } from '@nestjs/common';
-import { OrderController } from './order.controller';
-import { OrderService } from './order.service';
-import { KafkaModule } from '@libs/kafka/lib/kafka.module';
-import { PrismaModule } from '@libs/prisma/lib/prisma.module';
-import { CacheModule } from '@libs/cache/cache.module';
 import { Partitioners } from 'kafkajs';
+import { KafkaModule } from '@libs/kafka/lib/kafka.module';
+import { NotificationConsumer } from './notification.consumer';
+import { NotificationService } from './notification.service';
+import { PrismaModule } from '@libs/prisma/lib/prisma.module';
 
 @Module({
   imports: [
     KafkaModule.register({
-      name: 'ORDER_SVC',
-      topics: ['order-svc.created'],
+      name: 'NOTIFICATION_SERVICE_KAFKA',
+      topics: ['order-svc.created.public.outbox_event'],
       options: {
         client: {
-          clientId: 'order-service-kafka-client',
+          clientId: 'notification-service-kafka-client',
           brokers: ['localhost:9094'],
-          retry: {
-            retries: 5,
-            initialRetryTime: 300,
-          },
         },
         producer: {
           allowAutoTopicCreation: true,
-          // createPartitioner: KafkaService.CustomPartitioner,
           createPartitioner: Partitioners.LegacyPartitioner,
-          transactionalId: 'order-service-tx-producer',
+          transactionalId: 'notification-service-tx-producer',
           maxInFlightRequests: 1,
           idempotent: true,
         },
         consumer: {
-          groupId: 'order-service-consumer-group',
+          groupId: 'notification-service-consumer-group',
           allowAutoTopicCreation: true,
           sessionTimeout: 30000,
           heartbeatInterval: 3000,
@@ -40,9 +34,8 @@ import { Partitioners } from 'kafkajs';
       },
     }),
     PrismaModule,
-    CacheModule,
   ],
-  controllers: [OrderController],
-  providers: [OrderService],
+  controllers: [NotificationConsumer],
+  providers: [NotificationService],
 })
-export class OrderModule {}
+export class NotificationServiceModule {}
