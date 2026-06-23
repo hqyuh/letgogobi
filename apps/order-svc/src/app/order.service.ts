@@ -9,18 +9,20 @@ export class OrderService {
     // Create order ID simply
     const orderId = `order-${Date.now()}`;
 
+    // Create order details
+
     // Use transaction to ensure consistency (Outbox Pattern)
     const result = await this.prisma.$transaction(async (tx) => {
       const outboxEvent = await tx.outboxEvent.create({
         data: {
-          aggregateType: 'Order',
+          aggregateType: 'Order1',
           aggregateId: orderId,
           payload: {
             orderId,
             idempotencyKey,
-            status: 'created',
+            status: 'order.created',
             createdAt: new Date().toISOString(),
-            message: 'Order created successfully',
+            message: 'Order created',
           },
         },
       });

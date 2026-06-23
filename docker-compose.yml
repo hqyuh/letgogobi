@@ -2,8 +2,8 @@ services:
   # ======================================
   # POSTGRESQL
   # ======================================
-  database:
-    container_name: database
+  database2:
+    container_name: database2
     image: postgres:16-alpine
     restart: always
     environment:
@@ -105,8 +105,12 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
       KAFKA_CLUSTERS_0_READONLY: 'false'
       KAFKA_CLUSTERS_0_TOPIC_AUTO_CREATE: 'true'
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium-connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://debezium-connect:8083
     depends_on:
       kafka:
+        condition: service_healthy
+      debezium-connect:
         condition: service_healthy
     networks:
       - nest_network
@@ -114,8 +118,8 @@ services:
   # ======================================
   # REDIS
   # ======================================
-  redis:
-    container_name: redis # host connect redis-insight
+  redis2:
+    container_name: redis2 # host connect redis-insight
     image: redis:8.4.0-alpine
     restart: always
     command: sh /redis-init.sh
@@ -133,8 +137,8 @@ services:
   # ======================================
   # REDIS INSIGHT
   # ======================================
-  redis-insight:
-    container_name: redis-insight
+  redis-insight2:
+    container_name: redis-insight2
     image: redislabs/redisinsight:latest
     ports:
       - 5540:5540
@@ -142,7 +146,7 @@ services:
       - redis_insight:/data
     restart: always
     depends_on:
-      - redis
+      - redis2
     healthcheck:
       test: ['CMD-SHELL', 'curl --fail http://localhost:5540 || exit 1']
       interval: 30s
@@ -160,11 +164,16 @@ services:
       - REDISINSIGHT_REDIS_USERNAME=redis-user
 
   debezium-connect:
-    image: debezium/connect:2.7.3.Final
+    build:
+      context: ./debezium
+      dockerfile: Dockerfile
+    image: letgogobi/debezium-connect:2.7.3
     container_name: debezium-connect
     depends_on:
-      - kafka
-      - database
+      kafka:
+        condition: service_healthy
+      database2:
+        condition: service_healthy
     ports:
       - '8083:8083'
     environment:
@@ -183,7 +192,17 @@ services:
       VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
 
       OFFSET_FLUSH_INTERVAL_MS: 10000
-
+      ENABLE_DEBEZIUM_SCRIPTING: 'true'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl --silent --fail http://localhost:8083/connectors || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: always
     networks:
       - nest_network

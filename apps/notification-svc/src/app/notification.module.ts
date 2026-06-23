@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { Partitioners } from 'kafkajs';
 import { KafkaModule } from '@libs/kafka/lib/kafka.module';
-import { NotificationConsumer } from './notification.consumer';
 import { NotificationService } from './notification.service';
 import { PrismaModule } from '@libs/prisma/lib/prisma.module';
+import { NotificationConsumer } from './notification.consumer';
 
 @Module({
   imports: [

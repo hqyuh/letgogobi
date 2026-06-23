@@ -1,1 +1,12 @@
+allowBuilds:
+  '@nestjs/core': true
+  '@parcel/watcher': true
+  '@prisma/engines': true
+  '@swc/core': true
+  esbuild: true
+  less: true
+  nx: true
+  prisma: true
+  protobufjs: true
+  unrs-resolver: true
 autoInstallPeers: true

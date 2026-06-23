@@ -11,11 +11,8 @@
     "fix": "pnpm run nx:run-many --target=lint --fix",
     "dev": "pnpm nx:reset && pnpm nx:run-many -t serve",
     "dev:serve": "pnpm nx:run-many -t serve",
-    "dev-api-gw": "pnpm dev:serve --projects=api-gw",
     "dev-order-svc": "pnpm dev:serve --projects=order-svc",
     "dev-notification-svc": "pnpm dev:serve --projects=notification-svc",
-    "dev-user-svc": "pnpm dev:serve --projects=user-svc",
-    "build-api-gw": "pnpm nx:run-many --target=build --projects=api-gw",
     "build-all": "pnpm nx:run-many --target=build",
     "kafka:create-topics": "ts-node --transpile-only -r tsconfig-paths/register --project tsconfig.cli.json libs/kafka/src/cli.ts insert:kafka-topics",
     "kafka:delete-topics": "ts-node --transpile-only -r tsconfig-paths/register --project tsconfig.cli.json libs/kafka/src/cli.ts remove:kafka-topics",
@@ -24,7 +21,10 @@
     "prisma:reset": "prisma migrate reset",
     "prisma:studio": "prisma studio",
     "prisma:setup": "prisma migrate reset && prisma migrate dev --name init && prisma generate",
-    "prisma:seed": "npx prisma db seed"
+    "prisma:seed": "npx prisma db seed",
+    "prisma:deploy": "prisma migrate deploy",
+    "debezium:check": "sh debezium/check.sh",
+    "debezium:reset": "sh debezium/reset.sh"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",
