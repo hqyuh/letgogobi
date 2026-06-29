@@ -7,7 +7,7 @@ SLOT_NAME="${DEBEZIUM_SLOT:-debezium_order_svc}"
 DB_CONTAINER="${POSTGRES_CONTAINER:-database2}"
 DB_USER="${POSTGRES_USER:-postgresql}"
 DB_NAME="${POSTGRES_DB:-kafka_hqh}"
-TOPIC="${DEBEZIUM_TOPIC:-order-svc.created.public.outbox_event}"
+TOPIC="${DEBEZIUM_TOPIC:-cdc.order-svc.created.outbox_event}"
 KAFKA_CONTAINER="${KAFKA_CONTAINER:-kafka}"
 LAG_WARN_BYTES="${DEBEZIUM_LAG_WARN_BYTES:-100000}"
 

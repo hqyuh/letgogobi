@@ -36,6 +36,18 @@ model OutboxEvent {
   @@map("outbox_event")
 }
 
+model OutboxEventPayment {
+  id            String       @map("id") @id @default(uuid()) 
+  aggregateType String       @map("aggregate_type")
+  aggregateId   String       @map("aggregate_id")
+  status        OutboxStatus @map("status") @default(NEW)
+  payload       Json         @map("payload")
+  retryCount    Int          @map("retry_count") @default(0)
+  createdAt     DateTime     @map("created_at") @default(now())
+
+  @@map("outbox_event_payment")
+}
+
 model User {
   id          String    @map("id") @id @default(uuid())
   firstName   String    @map("first_name")

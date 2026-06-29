@@ -9,7 +9,10 @@ import { NotificationConsumer } from './notification.consumer';
   imports: [
     KafkaModule.register({
       name: 'NOTIFICATION_SERVICE_KAFKA',
-      topics: ['order-svc.created.public.outbox_event'],
+      topics: [
+        'cdc.order-svc.created.outbox_event',
+        'cdc.order-svc.created.outbox_event_payment',
+      ],
       options: {
         client: {
           clientId: 'notification-service-kafka-client',

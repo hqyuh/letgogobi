@@ -27,6 +27,16 @@ export class OrderService {
         },
       });
 
+      await tx.outboxEventPayment.create({
+        data: {
+          aggregateType: 'Order1',
+          aggregateId: orderId,
+          payload: {
+            orderId,
+          },
+        },
+      });
+
       return {
         orderId,
         idempotencyKey,

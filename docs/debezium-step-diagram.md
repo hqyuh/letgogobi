@@ -1,3 +1,7 @@
+# Debezium CDC flow (Outbox)
+
+> [Bản tiếng Việt](./debezium-step-diagram.vi.md)
+
 ```mermaid
 sequenceDiagram
   participant App as order-svc
@@ -19,16 +23,59 @@ sequenceDiagram
   DBZ->>Slot: confirm flush LSN
 ```
 
+## What is a replication slot?
+
+In the diagram, the **replication slot** (`debezium_order_svc` in this project) is **not** a per-INSERT processing step — it is a **background** mechanism Postgres uses to retain WAL for Debezium.
+
+When Debezium connects to Postgres, it creates (or reuses) a **logical replication slot**. The slot tells Postgres:
+
+> “Do not delete WAL from `restart_lsn` onward until I confirm I have finished reading.”
+
+So the line `Slot->>WAL: retain WAL from restart_lsn` means: **the slot holds WAL**, preventing Postgres from recycling/discarding WAL too early.
+
+### Actual flow
+
+1. App INSERT → Postgres writes to **WAL** (change log).
+2. **Slot** retains WAL — without a slot, Postgres may delete old WAL to save disk.
+3. Debezium reads WAL via the slot.
+4. Debezium publishes to Kafka.
+5. Debezium **confirms flush LSN** to the slot → Postgres knows “this WAL segment is fully processed, safe to clean up.”
+
+### How is it different from `_connect-offsets`?
+
+Same LSN, **two roles**:
+
+| | Replication slot (Postgres) | `_connect-offsets` (Kafka) |
+| --- | --- | --- |
+| Owned by | PostgreSQL | Kafka Connect / Debezium |
+| Purpose | Retain WAL, prevent data loss | Debezium knows where to resume on restart |
+| Read by | Postgres WAL manager | Debezium on startup |
+
+- **Kafka offset** = Debezium’s bookmark (“continue reading from here”).
+- **Replication slot** = Postgres’s bookmark (“keep WAL up to here for the consumer”).
+
+Postgres **does not read** `_connect-offsets`. It only learns progress via **confirm flush** on the slot.
+
+### Common slot-related failures
+
+- **Two connectors sharing one slot** → only one connector can read WAL.
+- **Empty publication** (no tables) → slot stays active but captures no INSERTs.
+- **After `prisma migrate reset`** → WAL resets but old offset remains → connector gets stuck.
+
+Verify with `pnpm debezium:check` — compare `confirmed_flush_lsn` (slot) with the Debezium offset.
+
+**In short:** the replication slot in the diagram = Postgres **retaining WAL** so Debezium does not lose events when reading slowly or restarting. It is not a business-logic step, but a CDC safety mechanism.
+
 ## Why two offsets? (Kafka + Postgres)
 
 Debezium tracks progress in **two places** at `save new LSN` and `confirm flush LSN`. Same LSN, different jobs.
 
-|                        | `save new LSN` → Kafka `_connect-offsets`                              | `confirm flush LSN` → Postgres slot `confirmed_flush_lsn`                 |
-| ---------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| **Stored where**       | Kafka topic `_connect-offsets`                                         | Postgres system catalog `pg_replication_slots`                            |
-| **Who owns it**        | Kafka Connect / Debezium                                               | PostgreSQL                                                                |
-| **Who reads it**       | Debezium when **connector restarts**                                   | Postgres WAL manager                                                      |
-| **Answers**            | “Where should Debezium **resume reading**?”                            | “Which WAL is **safely processed**?”                                      |
+| | `save new LSN` → Kafka `_connect-offsets` | `confirm flush LSN` → Postgres slot `confirmed_flush_lsn` |
+| --- | --- | --- |
+| **Stored where** | Kafka topic `_connect-offsets` | Postgres system catalog `pg_replication_slots` |
+| **Who owns it** | Kafka Connect / Debezium | PostgreSQL |
+| **Who reads it** | Debezium when **connector restarts** | Postgres WAL manager |
+| **Answers** | “Where should Debezium **resume reading**?” | “Which WAL is **safely processed**?” |
 | **If missing / wrong** | Connector resumes from wrong LSN → stuck, duplicates, or missed events | WAL cannot be recycled → disk grows; or WAL deleted too early → data loss |
 
 ### Kafka offset (`save new LSN`) — bookmark for Debezium

@@ -10,7 +10,7 @@ import { Partitioners } from 'kafkajs';
   imports: [
     KafkaModule.register({
       name: 'ORDER_SVC',
-      topics: ['order-svc.created'],
+      topics: [],
       options: {
         client: {
           clientId: 'order-service-kafka-client',

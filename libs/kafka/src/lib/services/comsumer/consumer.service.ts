@@ -26,6 +26,7 @@ export class ConsumerService
   private readonly topics: string[];
   private readonly options: KafkaModuleOption['options'];
   private onMessageHandler?: (message: KafkaMessage) => Promise<void>;
+  private consumerRunning = false;
 
   constructor(
     topics: KafkaModuleOption['topics'],
@@ -53,9 +54,6 @@ export class ConsumerService
   async onModuleInit() {
     await this.connect();
     await this.subscribeTopics();
-
-    // await this.handleEachMessage();
-    await this.handleEachBatch();
   }
 
   async onModuleDestroy() {
@@ -71,6 +69,10 @@ export class ConsumerService
 
   consume(onMessage: (message: KafkaMessage) => Promise<void>): void {
     this.onMessageHandler = onMessage;
+    if (!this.consumerRunning) {
+      this.consumerRunning = true;
+      void this.handleEachBatch();
+    }
   }
 
   async seekTo(record: TopicPartitionOffset): Promise<void> {

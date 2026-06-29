@@ -1,0 +1,103 @@
+name: pg-replication-demo
+
+# Demo 3 kiểu replication của PostgreSQL: async / semi-sync / sync
+# 1 primary + 2 replica. Mặc định khởi động ở chế độ ASYNC.
+# Đổi chế độ lúc runtime bằng ALTER SYSTEM (xem docs/postgresql-replication-setup.md).
+
+services:
+  pg-primary:
+    image: postgres:16-alpine
+    container_name: pg-primary
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      REPL_USER: repluser
+      REPL_PASSWORD: replpass
+    ports:
+      - '5532:5432'
+    command:
+      - postgres
+      - '-c'
+      - 'listen_addresses=*'
+      - '-c'
+      - 'wal_level=replica'
+      - '-c'
+      - 'max_wal_senders=10'
+      - '-c'
+      - 'max_replication_slots=10'
+      - '-c'
+      - 'hot_standby=on'
+      # KHÔNG đặt synchronous_commit / synchronous_standby_names ở đây.
+      # Tham số dòng lệnh (-c) sẽ ghi đè ALTER SYSTEM, khiến không đổi được mode lúc runtime.
+      # Default của Postgres: synchronous_commit=on, synchronous_standby_names='' (tức ASYNC).
+      # Đổi mode bằng ALTER SYSTEM (xem docs/postgresql-replication-setup.md).
+    volumes:
+      - pg_primary_data:/var/lib/postgresql/data
+      - ./primary/init.sh:/docker-entrypoint-initdb.d/00-init.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d appdb']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - repl_net
+
+  pg-replica1:
+    image: postgres:16-alpine
+    container_name: pg-replica1
+    restart: unless-stopped
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      PRIMARY_HOST: pg-primary
+      PRIMARY_PORT: '5432'
+      REPL_USER: repluser
+      REPL_PASSWORD: replpass
+      APP_NAME: replica1
+      SLOT_NAME: replica1_slot
+    ports:
+      - '5533:5432'
+    entrypoint: ['/bin/bash', '/replica-entrypoint.sh']
+    volumes:
+      - pg_replica1_data:/var/lib/postgresql/data
+      - ./replica/entrypoint.sh:/replica-entrypoint.sh:ro
+    networks:
+      - repl_net
+
+  pg-replica2:
+    image: postgres:16-alpine
+    container_name: pg-replica2
+    restart: unless-stopped
+    depends_on:
+      pg-primary:
+        condition: service_healthy
+    environment:
+      PGDATA: /var/lib/postgresql/data
+      PRIMARY_HOST: pg-primary
+      PRIMARY_PORT: '5432'
+      REPL_USER: repluser
+      REPL_PASSWORD: replpass
+      APP_NAME: replica2
+      SLOT_NAME: replica2_slot
+    ports:
+      - '5534:5432'
+    entrypoint: ['/bin/bash', '/replica-entrypoint.sh']
+    volumes:
+      - pg_replica2_data:/var/lib/postgresql/data
+      - ./replica/entrypoint.sh:/replica-entrypoint.sh:ro
+    networks:
+      - repl_net
+
+volumes:
+  pg_primary_data:
+  pg_replica1_data:
+  pg_replica2_data:
+
+networks:
+  repl_net:
+    name: repl_net
+    driver: bridge
