@@ -4,7 +4,7 @@ set -eu
 CONNECTOR="${DEBEZIUM_CONNECTOR:-order-svc-postgres-connector}"
 CONNECT_URL="${DEBEZIUM_CONNECT_URL:-http://localhost:8083}"
 SLOT_NAME="${DEBEZIUM_SLOT:-debezium_order_svc}"
-DB_CONTAINER="${POSTGRES_CONTAINER:-database2}"
+DB_CONTAINER="${POSTGRES_CONTAINER:-pg-primary}"
 DB_USER="${POSTGRES_USER:-postgresql}"
 DB_NAME="${POSTGRES_DB:-kafka_hqh}"
 CONFIG_FILE="$(cd "$(dirname "$0")" && pwd)/postgres-connector.json"
