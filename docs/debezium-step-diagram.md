@@ -14,13 +14,18 @@ sequenceDiagram
 
   Note over Slot,WAL: Background: slot retains WAL from restart_lsn<br/>(always active — not a step after each INSERT)
 
-  App->>PG: INSERT outbox_event
-  PG->>WAL: write INSERT + COMMIT
-  Slot->>WAL: retain WAL from restart_lsn
-  DBZ->>WAL: read new changes
-  DBZ->>K: publish message
-  DBZ->>Off: save new LSN
-  DBZ->>Slot: confirm flush LSN
+  App->>PG: 1. INSERT outbox_event
+  PG->>WAL: 2. write INSERT + COMMIT
+  PG-->>App: 3. COMMIT OK
+
+  DBZ->>Slot: 4. read new changes (logical decoding)
+  Slot->>WAL: 5. decode WAL from restart_lsn
+  WAL-->>DBZ: 6. row change (op, before/after)
+
+  DBZ->>K: 7. publish message (after SMT)
+  DBZ->>Off: 8. save new LSN (periodic offset flush)
+  DBZ->>Slot: 9. confirm flush LSN
+  Slot->>WAL: 10. advance restart_lsn → old WAL can be recycled
 ```
 
 ## What is a replication slot?

@@ -225,7 +225,7 @@ services:
     build:
       context: ./debezium
       dockerfile: Dockerfile
-    image: letgogobi/debezium-connect:2.7.3
+    image: letgogobi/debezium-connect:3.6.0.Final
     container_name: debezium-connect
     depends_on:
       kafka:

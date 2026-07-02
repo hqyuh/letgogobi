@@ -10,7 +10,7 @@ sequenceDiagram
     participant P as Primary DB
     participant R as Replica DB
 
-    C->>P: INSERT / UPDATE
+    C->>P: INSERT / UPDATE / DELETE
     P->>P: Write WAL
     P->>P: Commit transaction
     P->>R: Send WAL
@@ -35,12 +35,12 @@ sequenceDiagram
 
 ## So sánh nhanh
 
-| Tiêu chí | Sync | Semi-sync | Async |
-|---|---|---|---|
-| Độ trễ ghi | Cao | Trung bình | Thấp |
-| Rủi ro mất dữ liệu (RPO) | 0 | Rất thấp | Có thể cao |
-| Phụ thuộc replica | Cao | Trung bình | Thấp |
-| Consistency | Mạnh | Gần mạnh | Eventual |
+| Tiêu chí                 | Sync | Semi-sync  | Async      |
+| ------------------------ | ---- | ---------- | ---------- |
+| Độ trễ ghi               | Cao  | Trung bình | Thấp       |
+| Rủi ro mất dữ liệu (RPO) | 0    | Rất thấp   | Có thể cao |
+| Phụ thuộc replica        | Cao  | Trung bình | Thấp       |
+| Consistency              | Mạnh | Gần mạnh   | Eventual   |
 
 ## Khi nào dùng
 

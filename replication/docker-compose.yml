@@ -5,9 +5,9 @@ name: pg-replication-demo
 # Đổi chế độ lúc runtime bằng ALTER SYSTEM (xem docs/postgresql-replication-setup.md).
 
 services:
-  pg-primary:
+  pg-primary-cc:
     image: postgres:16-alpine
-    container_name: pg-primary
+    container_name: pg-primary-cc
     restart: unless-stopped
     environment:
       POSTGRES_DB: appdb
@@ -44,16 +44,16 @@ services:
     networks:
       - repl_net
 
-  pg-replica1:
+  pg-replica1-cc:
     image: postgres:16-alpine
-    container_name: pg-replica1
+    container_name: pg-replica1-cc
     restart: unless-stopped
     depends_on:
-      pg-primary:
+      pg-primary-cc:
         condition: service_healthy
     environment:
       PGDATA: /var/lib/postgresql/data
-      PRIMARY_HOST: pg-primary
+      PRIMARY_HOST: pg-primary-cc
       PRIMARY_PORT: '5432'
       REPL_USER: repluser
       REPL_PASSWORD: replpass
@@ -68,16 +68,16 @@ services:
     networks:
       - repl_net
 
-  pg-replica2:
+  pg-replica2-cc:
     image: postgres:16-alpine
-    container_name: pg-replica2
+    container_name: pg-replica2-cc
     restart: unless-stopped
     depends_on:
-      pg-primary:
+      pg-primary-cc:
         condition: service_healthy
     environment:
       PGDATA: /var/lib/postgresql/data
-      PRIMARY_HOST: pg-primary
+      PRIMARY_HOST: pg-primary-cc
       PRIMARY_PORT: '5432'
       REPL_USER: repluser
       REPL_PASSWORD: replpass

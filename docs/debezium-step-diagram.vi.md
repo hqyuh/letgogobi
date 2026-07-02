@@ -14,13 +14,18 @@ sequenceDiagram
 
   Note over Slot,WAL: Nền: slot giữ WAL từ restart_lsn<br/>(luôn active — không phải bước sau mỗi INSERT)
 
-  App->>PG: INSERT outbox_event
-  PG->>WAL: ghi INSERT + COMMIT
-  Slot->>WAL: giữ WAL từ restart_lsn
-  DBZ->>WAL: đọc thay đổi mới
-  DBZ->>K: publish message
-  DBZ->>Off: lưu LSN mới
-  DBZ->>Slot: confirm flush LSN
+  App->>PG: 1. INSERT outbox_event
+  PG->>WAL: 2. ghi INSERT + COMMIT
+  PG-->>App: 3. COMMIT OK
+
+  DBZ->>Slot: 4. đọc thay đổi mới (logical decoding)
+  Slot->>WAL: 5. decode WAL từ restart_lsn
+  WAL-->>DBZ: 6. row change (op, before/after)
+
+  DBZ->>K: 7. publish message (sau SMT)
+  DBZ->>Off: 8. lưu LSN mới (offset flush định kỳ)
+  DBZ->>Slot: 9. confirm flush LSN
+  Slot->>WAL: 10. advance restart_lsn → WAL cũ có thể dọn
 ```
 
 ## Replication slot là gì?

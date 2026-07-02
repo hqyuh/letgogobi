@@ -1,4 +1,4 @@
-FROM debezium/connect:2.7.3.Final
+FROM quay.io/debezium/connect:3.6.0.Final
 
 ARG GROOVY_VERSION=4.0.21
 

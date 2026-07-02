@@ -10,7 +10,7 @@ sequenceDiagram
     participant P as Primary DB
     participant R as Replica DB
 
-    C->>P: INSERT / UPDATE
+    C->>P: INSERT / UPDATE / DELETE
     P->>P: Write WAL
     P->>R: Send WAL
     R->>R: Replay WAL
