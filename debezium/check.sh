@@ -4,15 +4,18 @@ set -eu
 CONNECTOR="${DEBEZIUM_CONNECTOR:-order-svc-postgres-connector}"
 CONNECT_URL="${DEBEZIUM_CONNECT_URL:-http://localhost:8083}"
 SLOT_NAME="${DEBEZIUM_SLOT:-debezium_order_svc}"
-DB_CONTAINER="${POSTGRES_CONTAINER:-pg-primary}"
-DB_USER="${POSTGRES_USER:-postgresql}"
+DB_CONTAINER="${POSTGRES_CONTAINER:-pg1}"
+DB_HOST="${POSTGRES_HOST:-haproxy}"
+DB_PORT="${POSTGRES_PORT:-5000}"
+DB_USER="${POSTGRES_USER:-postgres}"
+DB_PASS="${POSTGRES_PASSWORD:-postgres}"
 DB_NAME="${POSTGRES_DB:-kafka_hqh}"
-TOPIC="${DEBEZIUM_TOPIC:-cdc.order-svc.created.outbox_event}"
+TOPIC="${DEBEZIUM_TOPIC:-cdc.order_svc.created.outbox_event}"
 KAFKA_CONTAINER="${KAFKA_CONTAINER:-kafka}"
 LAG_WARN_BYTES="${DEBEZIUM_LAG_WARN_BYTES:-100000}"
 
 psql_query() {
-  docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -A -c "$1"
+  docker exec -e PGPASSWORD="$DB_PASS" "$DB_CONTAINER" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -A -c "$1"
 }
 
 echo "=== Debezium health check ==="

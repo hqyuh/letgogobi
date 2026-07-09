@@ -24,11 +24,13 @@
     "prisma:seed": "npx prisma db seed",
     "prisma:deploy": "prisma migrate deploy",
     "debezium:check": "sh debezium/check.sh",
-    "debezium:reset": "sh debezium/reset.sh"
+    "debezium:reset": "sh debezium/reset.sh",
+    "patroni:list": "docker exec pg1 patronictl list"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
+    "@kafkajs/confluent-schema-registry": "^4.1.0",
     "@keyv/redis": "^5.1.5",
     "@nest-lab/throttler-storage-redis": "^1.1.0",
     "@nestjs/cache-manager": "^3.1.0",

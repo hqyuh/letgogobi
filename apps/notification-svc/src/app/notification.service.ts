@@ -1,4 +1,5 @@
 import { CONSUMER_SERVICE } from '@libs/kafka/lib/constants/kafka.const';
+import { decodeKafkaMessageValue } from '@libs/kafka/lib/utils/kafka-message-decoder';
 import { IConsumerService } from '@libs/kafka/lib/services/comsumer/consumer.interface';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { OutboxEvent } from 'generated/prisma/client';
@@ -16,14 +17,14 @@ export class NotificationService {
   public handleSendNotification(): void {
     this.consumer.consume(async (message: KafkaMessage): Promise<void> => {
       try {
-        const messageValue = message.value?.toString();
-        if (!messageValue) {
+        const outboxEvent =
+          await decodeKafkaMessageValue<DebeziumUnwrappedOutboxEvent>(
+            message.value,
+          );
+        console.info('Decoded outbox event:', outboxEvent);
+        if (!outboxEvent) {
           return;
         }
-
-        const outboxEvent = JSON.parse(
-          messageValue,
-        ) as DebeziumUnwrappedOutboxEvent;
 
         if (outboxEvent.__op !== 'c') {
           return;

@@ -2,7 +2,7 @@
  * Message shape sau khi Debezium SMT xử lý:
  * - ExtractNewRecordState: unwrap envelope → flat record + __op, __table, __ts_ms
  * - ReplaceField: đổi payload → event_payload (tránh nhầm với Connect envelope)
- * - value.converter.schemas.enable=false: không bọc { schema, payload }
+ * - Apicurio AvroConverter (as-confluent): decode qua SchemaRegistry trước khi dùng type này
  *
  * Reference: https://debezium.io/documentation/reference/stable/transformations/event-flattening.html
  */
